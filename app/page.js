@@ -1,6 +1,13 @@
+
 "use client";
 
 import { useState } from "react";
+import { createClient } from "@supabase/supabase-js";
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+);
 
 export default function Home() {
   const [form, setForm] = useState({
@@ -15,6 +22,7 @@ export default function Home() {
   });
 
   const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
 
   function update(e) {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -22,7 +30,41 @@ export default function Home() {
 
   async function submit(e) {
     e.preventDefault();
-    setMessage("Registration system setup বাকি আছে।");
+    setLoading(true);
+    setMessage("");
+
+    try {
+      const { error } = await supabase
+        .from("registrations")
+        .insert([{
+          student_name: form.name,
+          class_name: form.className,
+          section: form.section,
+          roll: form.roll,
+          school_name: form.school,
+          sport: form.sport,
+          mobile: form.mobile,
+          email: form.email,
+        }]);
+
+      if (error) throw error;
+
+      setMessage("Registration Successful!");
+      setForm({
+        name: "",
+        className: "",
+        section: "",
+        roll: "",
+        school: "",
+        sport: "",
+        mobile: "",
+        email: "",
+      });
+    } catch (error) {
+      setMessage("Registration Failed: " + error.message);
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -31,13 +73,13 @@ export default function Home() {
       <h2>Sports Registration Form</h2>
 
       <form onSubmit={submit}>
-        <input name="name" placeholder="Student Name" onChange={update} required />
-        <input name="className" placeholder="Class" onChange={update} required />
-        <input name="section" placeholder="Section" onChange={update} required />
-        <input name="roll" placeholder="Roll" onChange={update} required />
-        <input name="school" placeholder="School Name" onChange={update} required />
+        <input name="name" placeholder="Student Name" value={form.name} onChange={update} required />
+        <input name="className" placeholder="Class" value={form.className} onChange={update} required />
+        <input name="section" placeholder="Section" value={form.section} onChange={update} required />
+        <input name="roll" placeholder="Roll" value={form.roll} onChange={update} required />
+        <input name="school" placeholder="School Name" value={form.school} onChange={update} required />
 
-        <select name="sport" onChange={update} required>
+        <select name="sport" value={form.sport} onChange={update} required>
           <option value="">Select Sport</option>
           <option>Football</option>
           <option>Cricket</option>
@@ -47,10 +89,12 @@ export default function Home() {
           <option>Other</option>
         </select>
 
-        <input name="mobile" placeholder="Guardian Mobile Number" onChange={update} required />
-        <input name="email" type="email" placeholder="Guardian Email" onChange={update} required />
+        <input name="mobile" placeholder="Guardian Mobile Number" value={form.mobile} onChange={update} required />
+        <input name="email" type="email" placeholder="Guardian Email" value={form.email} onChange={update} required />
 
-        <button type="submit">Register Now</button>
+        <button type="submit" disabled={loading}>
+          {loading ? "Submitting..." : "Register Now"}
+        </button>
       </form>
 
       <p>{message}</p>
